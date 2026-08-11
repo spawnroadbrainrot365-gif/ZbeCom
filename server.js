@@ -6,8 +6,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// خدمة الملفات الثابتة (public folder)
-app.use(express.static('public'));
+// نخدم الـ index.html من مجلد المشروع مباشرة
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // نقطة نهاية تجلب الموقع
 app.get('/fetch', async (req, res) => {
@@ -41,7 +43,7 @@ app.get('/fetch', async (req, res) => {
         // الرابط الأساسي للوكيل
         const baseProxy = `${req.protocol}://${req.get('host')}/fetch?url=`;
 
-        // نعدل جميع الروابط
+        // نعدل جميع الروابط النسبية
         $('a[href]').each((i, el) => {
             let href = $(el).attr('href');
             if (href && href.startsWith('/')) {
@@ -50,4 +52,38 @@ app.get('/fetch', async (req, res) => {
         });
 
         $('link[href]').each((i, el) => {
-            let href = $(el
+            let href = $(el).attr('href');
+            if (href && href.startsWith('/')) {
+                $(el).attr('href', baseProxy + encodeURIComponent(targetUrl + href));
+            }
+        });
+
+        $('script[src]').each((i, el) => {
+            let src = $(el).attr('src');
+            if (src && src.startsWith('/')) {
+                $(el).attr('src', baseProxy + encodeURIComponent(targetUrl + src));
+            }
+        });
+
+        $('img[src]').each((i, el) => {
+            let src = $(el).attr('src');
+            if (src && src.startsWith('/')) {
+                $(el).attr('src', baseProxy + encodeURIComponent(targetUrl + src));
+            }
+        });
+
+        // نرسل المحتوى المعدل
+        res.send($.html());
+
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ 
+            error: 'فشل جلب الموقع',
+            details: error.message 
+        });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 الوكيل شغال على http://localhost:${PORT}`);
+});
